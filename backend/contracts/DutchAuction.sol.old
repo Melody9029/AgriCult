@@ -1,0 +1,215 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+/**
+ * @title DutchAuctionRWA
+ * @dev Dutch auction contract for a single ERC721 token representing a Real World Asset
+ * Price decreases linearly from starting price to 50% over 24 hours
+ */
+contract DutchAuctionRWA is ReentrancyGuard, Ownable {
+    IERC721 public immutable nftContract;
+    uint256 public immutable tokenId;
+    uint256 public immutable startingPrice;
+    uint256 public immutable minimumPrice;
+    uint256 public immutable startTime;
+    uint256 public immutable endTime;
+    
+    address public seller;
+    bool public auctionEnded;
+    
+    // Duration constants
+    uint256 public constant AUCTION_DURATION = 24 hours;
+    uint256 public constant PRICE_REDUCTION_FACTOR = 2; // 50% minimum price
+    
+    event AuctionStarted(
+        address indexed seller,
+        address indexed nftContract,
+        uint256 indexed tokenId,
+        uint256 startingPrice,
+        uint256 minimumPrice,
+        uint256 startTime,
+        uint256 endTime
+    );
+    
+    event Purchase(
+        address indexed buyer,
+        uint256 price,
+        uint256 timestamp
+    );
+    
+    event AuctionCanceled(uint256 timestamp);
+    
+    modifier auctionActive() {
+        require(!auctionEnded, "Auction has ended");
+        require(block.timestamp >= startTime, "Auction has not started");
+        require(block.timestamp <= endTime, "Auction time has expired");
+        _;
+    }
+    
+    modifier onlySeller() {
+        require(msg.sender == seller, "Only seller can call this function");
+        _;
+    }
+    
+    /**
+     * @dev Constructor to initialize the Dutch auction
+     * @param _nftContract Address of the ERC721 contract
+     * @param _tokenId Token ID of the NFT to be auctioned
+     * @param _startingPrice Starting price in wei
+     */
+    constructor(
+        address _nftContract,
+        uint256 _tokenId,
+        uint256 _startingPrice
+    ) {
+        require(_nftContract != address(0), "Invalid NFT contract address");
+        require(_startingPrice > 0, "Starting price must be greater than 0");
+        
+        nftContract = IERC721(_nftContract);
+        tokenId = _tokenId;
+        startingPrice = _startingPrice;
+        minimumPrice = _startingPrice / PRICE_REDUCTION_FACTOR; // 50% of starting price
+        startTime = block.timestamp;
+        endTime = startTime + AUCTION_DURATION;
+        seller = msg.sender;
+        
+        // Verify the seller owns the NFT
+        require(
+            nftContract.ownerOf(_tokenId) == msg.sender,
+            "Seller does not own the NFT"
+        );
+        
+        // Verify this contract is approved to transfer the NFT
+        require(
+            nftContract.getApproved(_tokenId) == address(this) ||
+            nftContract.isApprovedForAll(msg.sender, address(this)),
+            "Contract not approved to transfer NFT"
+        );
+        
+        emit AuctionStarted(
+            seller,
+            _nftContract,
+            _tokenId,
+            _startingPrice,
+            minimumPrice,
+            startTime,
+            endTime
+        );
+    }
+    
+    /**
+     * @dev Get current auction price based on linear reduction
+     * @return Current price in wei
+     */
+    function getCurrentPrice() public view returns (uint256) {
+        if (auctionEnded) {
+            return 0;
+        }
+        
+        if (block.timestamp >= endTime) {
+            return minimumPrice;
+        }
+        
+        if (block.timestamp <= startTime) {
+            return startingPrice;
+        }
+        
+        // Linear price reduction calculation
+        uint256 timeElapsed = block.timestamp - startTime;
+        uint256 priceReduction = (startingPrice - minimumPrice) * timeElapsed / AUCTION_DURATION;
+        
+        return startingPrice - priceReduction;
+    }
+    
+    /**
+     * @dev Purchase the NFT at current price
+     */
+    function purchase() external payable nonReentrant auctionActive {
+        uint256 currentPrice = getCurrentPrice();
+        require(msg.value >= currentPrice, "Insufficient payment");
+        
+        auctionEnded = true;
+        
+        // Transfer NFT to buyer
+        nftContract.safeTransferFrom(seller, msg.sender, tokenId);
+        
+        // Transfer payment to seller
+        uint256 payment = currentPrice;
+        (bool success, ) = payable(seller).call{value: payment}("");
+        require(success, "Payment transfer failed");
+        
+        // Refund excess payment
+        if (msg.value > currentPrice) {
+            uint256 refund = msg.value - currentPrice;
+            (bool refundSuccess, ) = payable(msg.sender).call{value: refund}("");
+            require(refundSuccess, "Refund transfer failed");
+        }
+        
+        emit Purchase(msg.sender, currentPrice, block.timestamp);
+    }
+    
+    /**
+     * @dev Cancel auction (only seller, only if no bids)
+     */
+    function cancelAuction() external onlySeller {
+        require(!auctionEnded, "Auction has already ended");
+        
+        auctionEnded = true;
+        
+        emit AuctionCanceled(block.timestamp);
+    }
+    
+    /**
+     * @dev Emergency withdrawal for seller after auction expires without sale
+     */
+    function emergencyWithdraw() external onlySeller {
+        require(block.timestamp > endTime, "Auction has not expired");
+        require(!auctionEnded, "Auction has already ended");
+        
+        auctionEnded = true;
+        
+        // NFT remains with seller, no transfer needed
+        emit AuctionCanceled(block.timestamp);
+    }
+    
+    /**
+     * @dev Get auction information
+     */
+    function getAuctionInfo() external view returns (
+        address nftContractAddress,
+        uint256 nftTokenId,
+        uint256 currentPrice,
+        uint256 startPrice,
+        uint256 minPrice,
+        uint256 auctionStartTime,
+        uint256 auctionEndTime,
+        bool isActive,
+        address auctionSeller
+    ) {
+        return (
+            address(nftContract),
+            tokenId,
+            getCurrentPrice(),
+            startingPrice,
+            minimumPrice,
+            startTime,
+            endTime,
+            !auctionEnded && block.timestamp >= startTime && block.timestamp <= endTime,
+            seller
+        );
+    }
+    
+    /**
+     * @dev Get time remaining in auction
+     */
+    function getTimeRemaining() external view returns (uint256) {
+        if (auctionEnded || block.timestamp >= endTime) {
+            return 0;
+        }
+        return endTime - block.timestamp;
+    }
+}
