@@ -3,7 +3,6 @@
 // You would call this from your actual producer registration API endpoint.
 
 import { NextResponse } from "next/server"
-import type { IVerifyResponse } from "@worldcoin/idkit"
 
 interface WorldIDResponse {
   nullifier_hash: string;

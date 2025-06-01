@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast" // Assuming you have this hook
+import { useAuth } from "@/contexts/auth-context"
 
 export default function SignInPage() {
   const [email, setEmail] = useState("")
@@ -17,6 +18,7 @@ export default function SignInPage() {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
+  const { login } = useAuth()
 
   const handleSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -36,12 +38,45 @@ export default function SignInPage() {
       })
       setIsLoading(false)
     } else if (email && password) {
-      toast({
-        title: "Sign In Successful!",
-        description: "Welcome back!",
-      })
-      // Redirect to a dashboard or home page after successful sign-in
-      router.push("/") // Or '/dashboard'
+      // Simulate API response
+      const response = {
+        ok: true,
+        json: async () => ({
+          user: {
+            id: "temp-id",
+            fullName: "Logged In User",
+            email: email,
+          },
+          token: "some_jwt_token",
+        }),
+      }
+
+      if (response.ok) {
+        // Assuming 'data' from response.json() contains user info
+        // e.g., data = { user: { id: '123', fullName: 'John Doe', email: email }, token: 'some_jwt_token' }
+        const data = await response.json()
+        const userData = data.user || {
+          id: "temp-id",
+          fullName: "Logged In User",
+          email: email,
+          avatarUrl: `https://avatar.vercel.sh/${email}.png`,
+        } // Fallback if API doesn't return full user
+        console.log("SignInPage: Calling context login with userData:", userData, "token:", data.token)
+        login(userData, data.token) // Pass token if available
+
+        toast({
+          title: "Sign In Successful!",
+          description: "Welcome back!",
+        })
+        router.push("/")
+      } else {
+        toast({
+          title: "Sign In Failed",
+          description: "Invalid email or password. Please try again.",
+          variant: "destructive",
+        })
+        setIsLoading(false)
+      }
     } else {
       toast({
         title: "Missing Information",

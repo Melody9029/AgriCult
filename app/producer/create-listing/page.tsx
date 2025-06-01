@@ -661,7 +661,7 @@ export default function CreateListingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
@@ -686,8 +686,8 @@ export default function CreateListingPage() {
       <main className="container mx-auto px-4 py-8 max-w-5xl">
         {/* Page Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Create New Auction Listing</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Create New Auction Listing</h1>
+          <p className="text-gray-600">
             List your organic products for Dutch auction. Prices will automatically decrease over time until sold or
             reaching the minimum price.
           </p>
@@ -710,7 +710,7 @@ export default function CreateListingPage() {
         ) : (
           <form onSubmit={handleSubmit}>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="grid grid-cols-2 md:grid-cols-6 w-full">
+              <TabsList className="bg-white grid grid-cols-2 md:grid-cols-6 w-full">
                 <TabsTrigger value="basic">Basic Info</TabsTrigger>
                 <TabsTrigger value="details">Product Details</TabsTrigger>
                 <TabsTrigger value="auction">Auction Settings</TabsTrigger>
