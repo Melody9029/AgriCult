@@ -1,30 +1,13 @@
-# Dutch auction platform
+# 🍇 AgriCult
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
+Cultivating Trust. One auction at a time.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/melody9029s-projects/v0-dutch-auction-platform)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/VuQQiUxlSB1)
+Built on Flow, and leveraging Privy for seamless onboarding and Worldcoin for robust seller verification, AgriCult provides an on-chain Dutch auction platform for verified organic goods, fostering direct, transparent trade and community resiliency.
 
-## Overview
+# 🤝 Why our project matters
 
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
+As digital nomads, we seek to genuinely engage with the places we visit. 
+Our project provides travelers and the communities they reside in the opportunity to contribute to the local economy by supporting the organic producers who represent an integral part of the regional food system. Current systems disconnect producers from buyers, making it hard for conscious consumers to truly support local economies. Despite their dedication to sustainable practices, their livelihoods are constantly threatened by significant cuts taken by middlemen and volatile commodity prices.
 
-## Deployment
+# 🔍 How it works
 
-Your project is live at:
-
-**[https://vercel.com/melody9029s-projects/v0-dutch-auction-platform](https://vercel.com/melody9029s-projects/v0-dutch-auction-platform)**
-
-## Build your app
-
-Continue building your app on:
-
-**[https://v0.dev/chat/projects/VuQQiUxlSB1](https://v0.dev/chat/projects/VuQQiUxlSB1)**
-
-## How It Works
-
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
