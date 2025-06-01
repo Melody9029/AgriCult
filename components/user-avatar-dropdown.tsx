@@ -1,3 +1,4 @@
+// components/user-avatar-dropdown.tsx
 "use client"
 
 import Link from "next/link"
@@ -11,31 +12,68 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { LogOut, Settings, UserCircle } from "lucide-react"
-import { useAuth } from "@/contexts/auth-context" // Adjusted path
-
-interface User {
-  id: string
-  fullName: string
-  email: string
-  avatarUrl?: string
-}
+import { LogOut, Settings, UserCircle } from 'lucide-react'
+import { usePrivy } from "@privy-io/react-auth"
 
 export function UserAvatarDropdown() {
-  const { user, logout } = useAuth()
+  const { user, logout } = usePrivy()
 
-  console.log("UserAvatarDropdown: Received from useAuth - user:", user)
-
-  if (!user || !user.email || !user.fullName) {
-    console.error("UserAvatarDropdown: User data is null or incomplete.", user)
+  if (!user) {
     return null
   }
 
   const getInitials = (name: string) => {
-    const names = name.split(" ")
-    if (names.length === 0) return "?"
-    if (names.length === 1) return names[0][0]?.toUpperCase() || "?"
-    return (names[0][0] + names[names.length - 1][0]).toUpperCase()
+    if (!name) return "U"
+    return name.charAt(0).toUpperCase()
+  }
+
+  const getUserDisplayName = () => {
+    // Try to get name from linked accounts
+    for (const account of user.linkedAccounts || []) {
+      if (account.type === "google" && account.displayName) {
+        return account.displayName
+      }
+      if (account.type === "twitter" && account.displayName) {
+        return account.displayName
+      }
+    }
+    
+    // Fall back to email if available
+    if (user.email?.address) {
+      return user.email.address.split("@")[0]
+    }
+    
+    return "User"
+  }
+
+  const getUserEmail = () => {
+    if (user.email?.address) {
+      return user.email.address
+    }
+    
+    // Check linked accounts for email
+    for (const account of user.linkedAccounts || []) {
+      if (account.type === "google" && account.email) {
+        return account.email
+      }
+    }
+    
+    return "No email"
+  }
+
+  const getAvatarUrl = () => {
+    // Check for linked accounts first
+    for (const account of user.linkedAccounts || []) {
+      if (account.type === "google" && account.picture) {
+        return account.picture
+      }
+      if (account.type === "twitter" && account.picture) {
+        return account.picture
+      }
+    }
+    
+    // Generate avatar from email
+    return `https://avatar.vercel.sh/${getUserEmail()}.png`
   }
 
   return (
@@ -43,23 +81,21 @@ export function UserAvatarDropdown() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={user.avatarUrl || `https://avatar.vercel.sh/${user.email}.png`} alt={user.fullName} />
-            <AvatarFallback>{getInitials(user.fullName)}</AvatarFallback>
+            <AvatarImage src={getAvatarUrl() || "/placeholder.svg"} alt={getUserDisplayName()} />
+            <AvatarFallback>{getInitials(getUserDisplayName())}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.fullName}</p>
-            <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+            <p className="text-sm font-medium leading-none">{getUserDisplayName()}</p>
+            <p className="text-xs leading-none text-muted-foreground">{getUserEmail()}</p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link href="/profile" className="flex items-center">
-            {" "}
-            {/* Assuming /profile for user settings */}
             <UserCircle className="mr-2 h-4 w-4" />
             Profile
           </Link>
@@ -71,7 +107,7 @@ export function UserAvatarDropdown() {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={logout} className="cursor-pointer flex items-center">
+        <DropdownMenuItem onClick={() => logout()} className="cursor-pointer flex items-center">
           <LogOut className="mr-2 h-4 w-4" />
           Log out
         </DropdownMenuItem>

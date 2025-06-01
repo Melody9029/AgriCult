@@ -1,61 +1,46 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { IDKitWidget, type ISuccessResult, VerificationLevel } from "@worldcoin/idkit"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast" // Assuming you have a useToast hook
-
-// This is a placeholder for your actual registration logic
-async function registerProducerAPI(data: {
-  name: string
-  email: string
-  worldcoinProof: ISuccessResult
-}) {
-  console.log("Registering producer:", data)
-  // Replace with your actual API call to your backend
-  // Example:
-  // const response = await fetch('/api/register-producer', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(data),
-  // });
-  // if (!response.ok) {
-  //   const errorResult = await response.json();
-  //   throw new Error(errorResult.message || "Producer registration failed");
-  // }
-  // return response.json();
-
-  // Simulate API call
-  await new Promise((resolve) => setTimeout(resolve, 1000))
-  if (data.email.includes("fail")) {
-    // Simulate a failure condition
-    throw new Error("Simulated registration failure for this email.")
-  }
-  return { success: true, message: "Producer registered successfully (simulated)" }
-}
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/hooks/use-toast"
+import { usePrivy } from "@privy-io/react-auth" // or your correct Privy import
+import Link from "next/link"
 
 export default function ProducerRegistrationPage() {
-  const [isVerified, setIsVerified] = useState(false)
+  const [isWorldcoinVerified, setIsWorldcoinVerified] = useState(false)
   const [worldcoinProof, setWorldcoinProof] = useState<ISuccessResult | null>(null)
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [formData, setFormData] = useState({
+    farmName: "",
+    location: "",
+    description: "",
+    certifications: "",
+    contactPhone: "",
+  })
+
+
+  const router = useRouter()
   const { toast } = useToast()
+  const { user, authenticated, login } = usePrivy()
 
   const WLD_APP_ID = process.env.NEXT_PUBLIC_WLD_APP_ID
-  const WLD_ACTION_NAME = process.env.WLD_ACTION_NAME || "producer-registration" // Default if not set
+  const WLD_ACTION_NAME = process.env.NEXT_PUBLIC_WLD_ACTION_NAME || "producer-registration"
 
   if (!WLD_APP_ID) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-red-500">
-          Worldcoin App ID is not configured. Please set NEXT_PUBLIC_WLD_APP_ID environment variable.
-        </p>
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6">
+            <p className="text-red-500 text-center">Worldcoin App ID is not configured. Please contact support.</p>
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -63,10 +48,10 @@ export default function ProducerRegistrationPage() {
   const handleWorldcoinSuccess = (result: ISuccessResult) => {
     console.log("Worldcoin verification successful:", result)
     setWorldcoinProof(result)
-    setIsVerified(true)
+    setIsWorldcoinVerified(true)
     toast({
       title: "Human Verification Successful!",
-      description: "You can now proceed with registration.",
+      description: "You can now proceed with producer registration.",
     })
   }
 
@@ -79,9 +64,24 @@ export default function ProducerRegistrationPage() {
     })
   }
 
-  const handleRegistrationSubmit = async (e: React.FormEvent) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleProducerRegistration = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!worldcoinProof) {
+
+    if (!authenticated || !user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in first to register as a producer.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!isWorldcoinVerified || !worldcoinProof) {
       toast({
         title: "Verification Required",
         description: "Please complete human verification first.",
@@ -89,22 +89,45 @@ export default function ProducerRegistrationPage() {
       })
       return
     }
+
     setIsLoading(true)
+
     try {
-      const result = await registerProducerAPI({ name, email, worldcoinProof })
-      toast({
-        title: "Registration Submitted!",
-        description: result.message || "Your registration has been submitted.",
+      const response = await fetch("/api/register-producer", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user: {
+            id: user.id,
+            email: user.email?.address || user.linkedAccounts?.find((acc: { type: string; email: string }) => acc.type === "google")?.email,
+          },
+          worldcoinProof,
+          producerData: formData,
+        }),
       })
-      // Reset form or redirect
-      setName("")
-      setEmail("")
-      setIsVerified(false)
-      setWorldcoinProof(null)
-    } catch (error: any) {
+
+      const data = await response.json()
+
+      if (response.ok) {
+        toast({
+          title: "Producer Registration Successful!",
+          description: "Your producer account has been created and is pending approval.",
+        })
+        router.push("/producer-dashboard") // Redirect to producer dashboard
+      } else {
+        toast({
+          title: "Registration Failed",
+          description: data.message || "An error occurred during registration.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Producer registration error:", error)
       toast({
-        title: "Registration Failed",
-        description: error.message || "Could not register producer.",
+        title: "Registration Error",
+        description: "An unexpected error occurred. Please try again later.",
         variant: "destructive",
       })
     } finally {
@@ -112,29 +135,58 @@ export default function ProducerRegistrationPage() {
     }
   }
 
-  return (
-    <div className="bg-gray-50">
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-green-600 to-green-700 text-white py-12">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl font-bold mb-4">Become a Producer</h1>
-          <p className="text-xl">Join our platform to sell your organic products through Dutch auctions.</p>
-        </div>
-      </section>
-
-      <div className="container mx-auto px-4 py-8">
-        <Card className="max-w-md mx-auto">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-center">Producer Registration</CardTitle>
-            <CardDescription className="text-center">
-              Verify you are a human, then complete the registration form.
-            </CardDescription>
+  // If user is not authenticated, show sign-in prompt
+  if (!authenticated) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-100 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold">Producer Registration</CardTitle>
+            <CardDescription>Please sign in first to register as a producer on our platform.</CardDescription>
           </CardHeader>
-          <CardContent>
-            {!isVerified ? (
-              <div className="flex flex-col items-center space-y-4">
-                <p className="text-gray-600 text-sm">
-                  To ensure the integrity of our platform, producers are required to complete a human verification step.
+          <CardContent className="space-y-4">
+            <Button onClick={login} className="w-full">
+              Sign In to Continue
+            </Button>
+            <div className="text-center text-sm text-gray-600">
+              <Link href="/marketplace" className="text-blue-600 hover:underline">
+                Back to Marketplace
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-100 p-4">
+      <Card className="w-full max-w-2xl">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold">Producer Registration</CardTitle>
+          <CardDescription>
+            Complete human verification and provide your farm details to start selling on our platform.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Step 1: Worldcoin Verification */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
+                  isWorldcoinVerified ? "bg-green-500 text-white" : "bg-gray-300 text-gray-600"
+                }`}
+              >
+                1
+              </div>
+              <h3 className="text-lg font-semibold">Human Verification</h3>
+            </div>
+
+            {!isWorldcoinVerified ? (
+              <div className="bg-blue-50 p-4 rounded-lg space-y-3">
+                <p className="text-sm text-gray-700">
+                  To ensure the integrity of our platform, all producers must complete human verification using World
+                  ID.
                 </p>
                 <IDKitWidget
                   app_id={WLD_APP_ID as `app_${string}`}
@@ -149,42 +201,119 @@ export default function ProducerRegistrationPage() {
                     </Button>
                   )}
                 </IDKitWidget>
-                <p className="text-xs text-gray-500">Powered by Worldcoin</p>
+                <p className="text-xs text-gray-500 text-center">Powered by Worldcoin</p>
               </div>
             ) : (
-              <form onSubmit={handleRegistrationSubmit} className="space-y-4">
+              <div className="bg-green-50 p-4 rounded-lg">
+                <p className="text-green-700 text-sm">✅ Human verification completed successfully!</p>
+              </div>
+            )}
+          </div>
+
+          {/* Step 2: Producer Information Form */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
+                  isWorldcoinVerified ? "bg-blue-500 text-white" : "bg-gray-300 text-gray-600"
+                }`}
+              >
+                2
+              </div>
+              <h3 className="text-lg font-semibold">Farm Information</h3>
+            </div>
+
+            {isWorldcoinVerified ? (
+              <form onSubmit={handleProducerRegistration} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="farmName">Farm/Business Name *</Label>
+                    <Input
+                      id="farmName"
+                      name="farmName"
+                      type="text"
+                      value={formData.farmName}
+                      onChange={handleInputChange}
+                      required
+                      disabled={isLoading}
+                      placeholder="Green Valley Organic Farm"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="location">Location *</Label>
+                    <Input
+                      id="location"
+                      name="location"
+                      type="text"
+                      value={formData.location}
+                      onChange={handleInputChange}
+                      required
+                      disabled={isLoading}
+                      placeholder="City, State/Province, Country"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <Label htmlFor="name" className="text-gray-900">Full Name</Label>
+                  <Label htmlFor="description">Farm Description *</Label>
+                  <Textarea
+                    id="description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    required
+                    disabled={isLoading}
+                    placeholder="Describe your farm, growing practices, and the types of produce you offer..."
+                    rows={4}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="certifications">Certifications</Label>
                   <Input
-                    id="name"
+                    id="certifications"
+                    name="certifications"
                     type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    placeholder="John Doe"
-                    className="mt-1"
+                    value={formData.certifications}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
+                    placeholder="e.g., USDA Organic, Fair Trade, etc."
                   />
                 </div>
+
                 <div>
-                  <Label htmlFor="email" className="text-gray-900">Email Address</Label>
+                  <Label htmlFor="contactPhone">Contact Phone</Label>
                   <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    placeholder="producer@example.com"
-                    className="mt-1"
+                    id="contactPhone"
+                    name="contactPhone"
+                    type="tel"
+                    value={formData.contactPhone}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
+                    placeholder="+1 (555) 123-4567"
                   />
                 </div>
+
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Registering..." : "Register as Producer"}
+                  {isLoading ? "Registering..." : "Complete Producer Registration"}
                 </Button>
               </form>
+            ) : (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-gray-600 text-sm text-center">
+                  Complete human verification above to access the registration form.
+                </p>
+              </div>
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+
+          <div className="text-center text-sm text-gray-600">
+            <Link href="/marketplace" className="text-blue-600 hover:underline">
+              Back to Marketplace
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
