@@ -4,7 +4,7 @@ import type { Metadata } from "next"
 import { Inter } from 'next/font/google'
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { PrivyClientProvider } from "@privy-io/react-auth"
+import { PrivyProvider } from "@privy-io/react-auth"
 import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -22,7 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <PrivyClientProvider
+        <PrivyProvider
           appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID || ""}
           config={{
             // Login methods to offer users
@@ -43,7 +43,7 @@ export default function RootLayout({
             {children}
             <Toaster />
           </ThemeProvider>
-        </PrivyClientProvider>
+        </PrivyProvider>
       </body>
     </html>
   )
