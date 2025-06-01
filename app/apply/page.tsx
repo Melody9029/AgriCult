@@ -1306,7 +1306,7 @@ export default function ProducerApplicationPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Link href="/" className="text-2xl font-bold text-green-600">
-                OrganicAuction
+                AgriCult
               </Link>
             </div>
             <div className="flex items-center space-x-4">
