@@ -113,67 +113,78 @@ export default function ProducerRegistrationPage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">Producer Registration</CardTitle>
-          <CardDescription className="text-center">
-            Verify you are a human, then complete the registration form.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {!isVerified ? (
-            <div className="flex flex-col items-center space-y-4">
-              <p className="text-sm text-gray-600">
-                To ensure the integrity of our platform, producers are required to complete a human verification step.
-              </p>
-              <IDKitWidget
-                app_id={WLD_APP_ID as `app_${string}`} // Cast to the expected type
-                action={WLD_ACTION_NAME}
-                onSuccess={handleWorldcoinSuccess}
-                onError={handleWorldcoinError}
-                verification_level={VerificationLevel.Orb} // Or Device, depending on your needs
-                // signal={email} // Optional: bind the proof to the email or other unique identifier
-              >
-                {({ open }: { open: () => void }) => (
-                  <Button onClick={open} className="w-full">
-                    Verify with World ID
-                  </Button>
-                )}
-              </IDKitWidget>
-              <p className="text-xs text-gray-500">Powered by Worldcoin</p>
-            </div>
-          ) : (
-            <form onSubmit={handleRegistrationSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  placeholder="John Doe"
-                />
+    <div className="bg-gray-50">
+      {/* Hero Section */}
+      <section className="bg-gradient-to-r from-green-600 to-green-700 text-white py-12">
+        <div className="container mx-auto px-4 text-center">
+          <h1 className="text-4xl font-bold mb-4">Become a Producer</h1>
+          <p className="text-xl">Join our platform to sell your organic products through Dutch auctions.</p>
+        </div>
+      </section>
+
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold text-center">Producer Registration</CardTitle>
+            <CardDescription className="text-center">
+              Verify you are a human, then complete the registration form.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!isVerified ? (
+              <div className="flex flex-col items-center space-y-4">
+                <p className="text-gray-600 text-sm">
+                  To ensure the integrity of our platform, producers are required to complete a human verification step.
+                </p>
+                <IDKitWidget
+                  app_id={WLD_APP_ID as `app_${string}`}
+                  action={WLD_ACTION_NAME}
+                  onSuccess={handleWorldcoinSuccess}
+                  onError={handleWorldcoinError}
+                  verification_level={VerificationLevel.Orb}
+                >
+                  {({ open }: { open: () => void }) => (
+                    <Button onClick={open} className="w-full">
+                      Verify with World ID
+                    </Button>
+                  )}
+                </IDKitWidget>
+                <p className="text-xs text-gray-500">Powered by Worldcoin</p>
               </div>
-              <div>
-                <Label htmlFor="email">Email Address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="producer@example.com"
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Registering..." : "Register as Producer"}
-              </Button>
-            </form>
-          )}
-        </CardContent>
-      </Card>
+            ) : (
+              <form onSubmit={handleRegistrationSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="name" className="text-gray-900">Full Name</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    placeholder="John Doe"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email" className="text-gray-900">Email Address</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    placeholder="producer@example.com"
+                    className="mt-1"
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Registering..." : "Register as Producer"}
+                </Button>
+              </form>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

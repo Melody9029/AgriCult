@@ -3,11 +3,11 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { MapPin, Clock, TrendingDown, Search, Filter } from "lucide-react"
+import { MapPin, Clock, TrendingDown, Search } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
 
 // Mock data for listings
 const mockListings = [
@@ -105,64 +105,66 @@ function AuctionCard({ listing }: { listing: any }) {
 
   return (
     <Link href={`/auction/${listing.id}`} className="block">
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full">
-        <div className="aspect-video relative">
-          <img src={listing.image || "/placeholder.svg"} alt={listing.title} className="w-full h-full object-cover" />
-          <Badge className="absolute top-2 right-2 bg-red-500">
-            <Clock className="w-3 h-3 mr-1" />
+      <div className="bg-black rounded-xl overflow-hidden hover:ring-1 hover:ring-white/10 transition-all">
+        <div className="aspect-video relative bg-gray-100">
+          <img src={listing.image} alt={listing.title} className="w-full h-full object-cover" />
+          <div className="absolute top-2 right-2 bg-[#FF3B30] text-white text-[11px] leading-none px-2 py-1 rounded-full flex items-center gap-1">
+            <Clock className="w-3 h-3" />
             {formatTime(timeLeft)}
-          </Badge>
-        </div>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg">{listing.title}</CardTitle>
-          <div className="flex items-center text-sm text-muted-foreground">
-            <MapPin className="w-4 h-4 mr-1" />
-            {listing.producer} • {listing.location} • {listing.distance}
           </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Quantity:</span>
-            <span className="font-medium">{listing.quantity}</span>
+        </div>
+        <div className="p-4">
+          <h3 className="text-lg font-semibold text-white mb-2">{listing.title}</h3>
+          <div className="flex items-center text-[13px] text-gray-400 mb-4">
+            <MapPin className="w-3.5 h-3.5 mr-1.5" />
+            {listing.producer} <span className="mx-1.5">•</span> {listing.location} <span className="mx-1.5">•</span> {listing.distance}
           </div>
 
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-2xl font-bold text-green-600">${currentPrice.toFixed(2)}/kg</span>
-              <div className="text-right">
-                <div className="flex items-center text-sm text-red-600">
-                  <TrendingDown className="w-4 h-4 mr-1" />
-                  {priceReductionPercentage.toFixed(1)}% off
+          <div className="space-y-4">
+            <div className="flex justify-between items-center text-gray-400">
+              <span className="text-[13px]">Quantity:</span>
+              <span className="text-[13px]">{listing.quantity}</span>
+            </div>
+
+            <div>
+              <div className="flex justify-between items-start mb-1">
+                <span className="text-[22px] font-bold text-[#00FF85]">${currentPrice.toFixed(2)}/kg</span>
+                <div className="text-right">
+                  <div className="flex items-center text-[13px] text-[#FF3B30] mb-0.5">
+                    <TrendingDown className="w-3.5 h-3.5 mr-1" />
+                    {priceReductionPercentage.toFixed(1)}% off
+                  </div>
+                  <div className="text-[11px] text-gray-500">Min: ${listing.minPrice}/kg</div>
                 </div>
-                <div className="text-xs text-muted-foreground">Min: ${listing.minPrice}/kg</div>
+              </div>
+
+              <div className="flex justify-between text-[11px] text-gray-500 mb-1">
+                <span>Start: ${listing.startPrice}</span>
+                <span>Market: ${listing.marketPrice}</span>
+              </div>
+
+              <div className="w-full bg-[#1A1A1A] rounded-full h-1">
+                <div
+                  className="bg-gradient-to-r from-[#FF6B00] via-[#FFB800] to-[#00FF85] h-1 rounded-full transition-all duration-300"
+                  style={{
+                    width: `${((listing.startPrice - currentPrice) / (listing.startPrice - listing.minPrice)) * 100}%`,
+                  }}
+                />
               </div>
             </div>
 
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-gradient-to-r from-red-500 to-green-500 h-2 rounded-full transition-all duration-300"
-                style={{
-                  width: `${((listing.startPrice - currentPrice) / (listing.startPrice - listing.minPrice)) * 100}%`,
-                }}
-              />
-            </div>
-
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Start: ${listing.startPrice}</span>
-              <span>Market: ${listing.marketPrice}</span>
-            </div>
+            <Button className="w-full bg-[#16A34A] hover:bg-[#15803D] text-white text-[13px] font-medium h-9 rounded-lg">
+              Place Bid - ${(currentPrice * Number.parseFloat(listing.quantity)).toFixed(2)}
+            </Button>
           </div>
-
-          <Button className="w-full" size="lg">
-            Place Bid - ${(currentPrice * Number.parseFloat(listing.quantity)).toFixed(2)}
-          </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </Link>
   )
 }
 
 export default function MarketplacePage() {
+  const { user } = useAuth()
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [selectedLocation, setSelectedLocation] = useState("all")
@@ -182,109 +184,68 @@ export default function MarketplacePage() {
   })
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-green-600">AgriCult</h1>
-              <nav className="hidden md:flex space-x-6">
-                <Link href="/" className="text-gray-600 hover:text-green-600">
-                  Marketplace
-                </Link>
-                <Link href="/producer" className="text-gray-600 hover:text-green-600">
-                  For Producers
-                </Link>
-                <Link href="/about" className="text-gray-600 hover:text-green-600">
-                  About
-                </Link>
-              </nav>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/signin" passHref>
-                <Button variant="outline">Sign In</Button>
-              </Link>
-              <Link href="/signup" passHref>
-          <Button>Sign Up</Button>
-        </Link>
-            </div>
-          </div>
-        </div>
-      </header>
-
+    <div className="min-h-screen bg-white">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-green-600 to-green-700 text-white py-12">
+      <section className="bg-[#16A34A] py-12">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold mb-4">Fresh Organic Produce at Dutch Auction Prices</h2>
-          <p className="text-xl mb-8">Watch prices drop every hour. Buy directly from local organic producers.</p>
+          <h1 className="text-4xl font-bold text-white mb-4">Fresh Organic Produce at Dutch Auction Prices</h1>
+          <p className="text-xl text-white/90 mb-8">Watch prices drop every hour. Buy directly from local organic producers.</p>
           <div className="max-w-2xl mx-auto">
-            <div className="flex gap-2">
+            <div className="relative flex">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
                 <Input
                   placeholder="Search for produce, producers, or locations..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="w-full pl-10 pr-24 h-11 bg-black/25 border-0 text-white placeholder:text-white/60 rounded-lg focus-visible:ring-1 focus-visible:ring-white/30"
                 />
+                <Button 
+                  size="sm" 
+                  className="absolute right-1 top-1 bottom-1 bg-black text-white hover:bg-black/90 rounded-md px-4 text-[13px] font-medium"
+                >
+                  Search
+                </Button>
               </div>
-              <Button size="lg" variant="secondary">
-                Search
-              </Button>
             </div>
           </div>
         </div>
       </section>
 
       {/* Filters */}
-      <section className="bg-white border-b py-6">
+      <section className="py-6">
         <div className="container mx-auto px-4">
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4" />
-              <span className="font-medium">Filters:</span>
+          <div className="flex flex-wrap gap-3 items-center justify-between">
+            <div className="flex gap-3">
+              <div className="relative group">
+                <button className="min-w-[200px] h-12 px-4 bg-black rounded-2xl text-white text-[15px] font-normal flex items-center justify-between">
+                  All Categories
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="opacity-40">
+                    <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+
+              <div className="relative group">
+                <button className="min-w-[200px] h-12 px-4 bg-black rounded-2xl text-white text-[15px] font-normal flex items-center justify-between">
+                  All Locations
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="opacity-40">
+                    <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+
+              <div className="relative group">
+                <button className="min-w-[200px] h-12 px-4 bg-black rounded-2xl text-white text-[15px] font-normal flex items-center justify-between">
+                  Time Left
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="opacity-40">
+                    <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              </div>
             </div>
 
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category === "all" ? "All Categories" : category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Location" />
-              </SelectTrigger>
-              <SelectContent>
-                {locations.map((location) => (
-                  <SelectItem key={location} value={location}>
-                    {location === "all" ? "All Locations" : location}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="time">Time Left</SelectItem>
-                <SelectItem value="price">Current Price</SelectItem>
-                <SelectItem value="discount">Discount %</SelectItem>
-                <SelectItem value="distance">Distance</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <div className="ml-auto text-sm text-muted-foreground">{filteredListings.length} listings found</div>
+            <div className="text-[13px] text-gray-500">{filteredListings.length} listings found</div>
           </div>
         </div>
       </section>
@@ -301,7 +262,7 @@ export default function MarketplacePage() {
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg">No listings found matching your criteria.</p>
             <Button
-              className="mt-4"
+              className="mt-4 bg-[#16A34A] hover:bg-[#15803D] text-white"
               onClick={() => {
                 setSearchTerm("")
                 setSelectedCategory("all")
@@ -313,83 +274,6 @@ export default function MarketplacePage() {
           </div>
         )}
       </main>
-
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white py-8 mt-12">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="text-lg font-bold mb-4">OrganicAuction</h3>
-              <p className="text-gray-400">
-                Connecting organic producers with conscious consumers through fair Dutch auctions.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">For Buyers</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <Link href="#" className="hover:text-white">
-                    How It Works
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="hover:text-white">
-                    Quality Guarantee
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="hover:text-white">
-                    Shipping Info
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">For Producers</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <Link href="/producer" className="hover:text-white">
-                    Start Selling
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="hover:text-white">
-                    Pricing Guide
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="hover:text-white">
-                    Success Stories
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Support</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <Link href="#" className="hover:text-white">
-                    Contact Us
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="hover:text-white">
-                    FAQ
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="hover:text-white">
-                    Terms of Service
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2025 AgriCult. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   )
 }
