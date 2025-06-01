@@ -410,12 +410,15 @@ export default function CreateListingPage() {
       // Handle nested fields
       if (field.includes(".")) {
         const [parent, child] = field.split(".")
-        return {
-          ...prev,
-          [parent]: {
-            ...prev[parent as keyof ListingFormData],
-            [child]: value,
-          },
+        const parentValue = prev[parent as keyof ListingFormData]
+        if (typeof parentValue === 'object' && parentValue !== null) {
+          return {
+            ...prev,
+            [parent]: {
+              ...parentValue,
+              [child]: value,
+            },
+          }
         }
       }
       return { ...prev, [field]: value }
@@ -665,7 +668,7 @@ export default function CreateListingPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Link href="/" className="text-2xl font-bold text-green-600">
-                OrganicAuction
+                AgriCult
               </Link>
             </div>
             <div className="flex items-center space-x-4">

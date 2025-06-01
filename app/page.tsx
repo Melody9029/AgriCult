@@ -79,13 +79,13 @@ function AuctionCard({ listing }: { listing: any }) {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setTimeLeft((prev) => {
+      setTimeLeft((prev: number) => {
         if (prev <= 0) return 0
         return prev - 0.1
       })
 
       // Simulate price reduction
-      setCurrentPrice((prev) => {
+      setCurrentPrice((prev: number) => {
         const priceReduction = (listing.startPrice - listing.minPrice) / (24 * 60 * 6) // Price reduction per 10 seconds
         const newPrice = prev - priceReduction
         return Math.max(newPrice, listing.minPrice)
@@ -188,7 +188,7 @@ export default function MarketplacePage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-green-600">OrganicAuction</h1>
+              <h1 className="text-2xl font-bold text-green-600">AgriCult</h1>
               <nav className="hidden md:flex space-x-6">
                 <Link href="/" className="text-gray-600 hover:text-green-600">
                   Marketplace
@@ -202,8 +202,12 @@ export default function MarketplacePage() {
               </nav>
             </div>
             <div className="flex items-center space-x-4">
-              <Button variant="outline">Sign In</Button>
-              <Button>Sign Up</Button>
+              <Link href="/signin" passHref>
+                <Button variant="outline">Sign In</Button>
+              </Link>
+              <Link href="/signup" passHref>
+          <Button>Sign Up</Button>
+        </Link>
             </div>
           </div>
         </div>
@@ -382,7 +386,7 @@ export default function MarketplacePage() {
             </div>
           </div>
           <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 OrganicAuction. All rights reserved.</p>
+            <p>&copy; 2025 AgriCult. All rights reserved.</p>
           </div>
         </div>
       </footer>
